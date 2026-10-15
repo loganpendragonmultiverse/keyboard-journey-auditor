@@ -2,7 +2,7 @@
 
 Record deliberate, value-free focus and Tab evidence on owned test pages.
 
-Version: **0.1.0**. [GitHub Releases](https://github.com/loganpendragonmultiverse/keyboard-journey-auditor/releases) identifies published downloads and release status. Original implementation for Logan Pendragon Forge. MIT licensed. No paid services, account or credentials are needed.
+MIT licensed. Runs locally without an account or external service. See [GitHub Releases](https://github.com/loganpendragonmultiverse/keyboard-journey-auditor/releases) for downloads.
 
 ## Three-minute start
 
@@ -17,7 +17,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 For a downloaded web ZIP, serve the unpacked folder with the Python command above and open its index page. The npm checks require the complete source checkout.
 
-## What this candidate does
+## Features
 
 A local static demonstration plus an embeddable JavaScript recorder that a developer explicitly installs in a selected test root. Each session requires an owned-test-page and normal-window attestation. Anonymous element slots, safe tag/role categories, Tab direction, default-prevention evidence, elapsed time and sequence numbers support focus-order review and possible-trap evidence.
 
