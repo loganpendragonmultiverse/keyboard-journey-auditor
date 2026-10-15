@@ -1,11 +1,11 @@
 """Build checksummed release assets from the exact checkout; never publishes."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import os
 import subprocess
-import tomllib
 import zipfile
 from pathlib import Path
 
@@ -26,17 +26,28 @@ def main() -> None:
                 if file.is_file():
                     archive.write(file, str(file.relative_to(root / "dist")))
         subprocess.run(
-            ["git", "archive", "--format=zip", f"--output={output / (slug + '-v' + version + '-source.zip')}", "HEAD"],
+            [
+                "git",
+                "archive",
+                "--format=zip",
+                f"--output={output / (slug + '-v' + version + '-source.zip')}",
+                "HEAD",
+            ],
             check=True,
         )
     else:
-        version = tomllib.loads((root / "pyproject.toml").read_text("utf-8"))["project"]["version"]
+        import tomllib
+
+        version = tomllib.loads((root / "pyproject.toml").read_text("utf-8"))[
+            "project"
+        ]["version"]
         output = root / "dist"
     if os.environ.get("GITHUB_REF_TYPE") == "tag":
         if os.environ.get("GITHUB_REF_NAME") != "v" + version:
             raise SystemExit("Tag and package/runtime version differ")
     artifacts = [
-        file for file in sorted(output.iterdir())
+        file
+        for file in sorted(output.iterdir())
         if file.is_file() and file.name != "SHA256SUMS"
     ]
     if not artifacts:

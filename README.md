@@ -2,7 +2,7 @@
 
 Record deliberate, value-free focus and Tab evidence on owned test pages.
 
-Prepared version: **0.1.0**. Publication is pending review and release gates; consult GitHub Releases for published artifacts. Original implementation for Logan Pendragon Forge. MIT licensed. No paid services, account or credentials are needed.
+Version: **0.1.0**. [GitHub Releases](https://github.com/loganpendragonmultiverse/keyboard-journey-auditor/releases) identifies published downloads and release status. Original implementation for Logan Pendragon Forge. MIT licensed. No paid services, account or credentials are needed.
 
 ## Three-minute start
 
@@ -15,13 +15,15 @@ python -m http.server 8765 --bind 127.0.0.1
 # Confirm both statements, Start, Tab through the fixture, Escape, review, Export.
 ```
 
+For a downloaded web ZIP, serve the unpacked folder with the Python command above and open its index page. The npm checks require the complete source checkout.
+
 ## What this candidate does
 
 A local static demonstration plus an embeddable JavaScript recorder that a developer explicitly installs in a selected test root. Each session requires an owned-test-page and normal-window attestation. Anonymous element slots, safe tag/role categories, Tab direction, default-prevention evidence, elapsed time and sequence numbers support focus-order review and possible-trap evidence.
 
 ## Privacy and safe operation
 
-Idle by default; explicit start only. Never reads or exports text, input values, labels, names, IDs, page URLs, clipboard data, passwords or typed contents. Only Tab and Escape are interpreted; other keys are discarded. Password focus observed within the selected root, an observed Tab exit from that root, Escape, window blur, page hiding, page departure, event limit and timeout stop collection and remove listeners. Mouse or programmatic focus changes outside the root are not independently monitored; no outside-root events are recorded. Evidence stays in memory until a user reviews and exports it; clearing discards it. No telemetry, data uploads, persistent storage, permission prompts or continuous background collection. Serving the application loads its static assets; the recorder does not send captured evidence to a server.
+Idle by default; explicit start only. Never reads or exports text, input values, labels, names, IDs, page URLs, clipboard data, passwords or typed contents. Only Tab and Escape are interpreted; other keys are discarded. Password focus within the selected root, any focus departure or pointer press outside that root, Escape anywhere in the document, window blur, page hiding, page departure, event limit and timeout stop collection and remove listeners. Re-entry cannot resume a stopped session without a fresh Start. Outside targets are checked only for root membership; no outside text, values or typed contents are collected. Evidence stays in memory until a user reviews and exports it; clearing discards it. No telemetry, data uploads, persistent storage, permission prompts or continuous background collection. Serving the application loads its static assets; the recorder does not send captured evidence to a server.
 
 ## Boundaries
 
