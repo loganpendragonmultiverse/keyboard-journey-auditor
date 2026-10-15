@@ -1,13 +1,11 @@
 # Testing
 
-Node tests exercise explicit consent, idle behavior, Tab direction and focus order, forbidden value/text getters, stationary-trap sequences, password stop, listener/timer teardown, Escape, visibility/blur/time boundaries, event caps, redacted tags/roles, report isolation, clearing and test-root exit. Browser acceptance must also exercise the bundled fixture and verify the network/privacy boundary before public release.
+Use Node 22 or newer. Run `npm test`, `npm run check`, `npm run build` and `npm audit --omit=dev`. There are no third-party runtime or build dependencies.
 
-`npm test`; `npm run check`; `npm run build`; `npm audit --omit=dev`.
+The 13 automated tests cover explicit start and consent, safe evidence fields, Tab direction, possible traps, password focus, event and time limits, listener cleanup, and stopping when the session leaves its selected root. GitHub CI passed on Windows, macOS and Linux on 2026-10-15. CodeQL analysis and result upload passed.
 
-Exact execution results and environment evidence are supplied with the RC bundle. CI definitions are not proof of completed remote CI. Public release remains gated on successful remote checks and maintainer security review.
+## Browser acceptance
 
-## Candidate evidence — 2026-10-15
+Serve the checkout locally and open `examples/exit-rehearsal.html` in a normal browser window. Use its synthetic controls to check Escape while focus is outside the root, a pointer press on an outside non-focusable area, programmatic focus departure, blur to the document body, and re-entry followed by Tab without another Start. Each case must leave collection stopped, with no new events after re-entry.
 
-Windows Node: initial eight tests passed, recorder line coverage 91.54%, branch coverage 85.51% (a ninth cycle/modifier regression was then added); syntax checks and static build passed. Edge loopback browser rehearsal: consent refusal passed, value-free focus transitions observed, synthetic typed contents absent from evidence, intentional stationary trap identified with sequences 3/4/5, Escape stopped recording, deliberate JSON export succeeded. Export SHA-256: cf4492330a0e05d50814ba419472488db0971e88e7cb6b135910cdccaffdac3b.
-
-Linux container and remote CI results are recorded in the release-candidate evidence packet. macOS and Firefox remain unverified unless the remote checks explicitly establish them. No real backup or private browsing was used.
+These checks passed in Microsoft Edge on Windows on 2026-10-15. Firefox and Safari browser acceptance have not been performed. The macOS CI run verifies Node tests, not Safari behavior. No private browsing or real user content was used.

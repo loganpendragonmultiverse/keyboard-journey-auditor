@@ -105,3 +105,61 @@ test("two-element cycles are evidence, modifier combinations are ignored", () =>
   recorder.stop(); doc.hidden = true;
   assert.throws(() => recorder.start(consent), /visible/);
 });
+
+function dispatch(target, type, properties = {}) {
+  const event = new Event(type);
+  for (const [name, value] of Object.entries(properties)) {
+    Object.defineProperty(event, name, { value });
+  }
+  target.dispatchEvent(event);
+}
+test("pointer exit stops even when clicking a non-focusable outside target", () => {
+  const { recorder, doc, node, key, tick, root, timers } = setup();
+  const inside = node(), outside = { inside: false,
+    get value() { throw new Error("Outside values must never be read"); },
+    get textContent() { throw new Error("Outside text must never be read"); } };
+  doc.activeElement = inside; recorder.start(consent); key();
+  dispatch(doc, "pointerdown", { target: outside });
+  assert.equal(recorder.reason, "test-root-left"); assert.equal(timers.size, 0);
+  const count = recorder.events.length;
+  doc.activeElement = inside; dispatch(root, "focusin", { target: inside });
+  key(); tick(); assert.equal(recorder.events.length, count);
+  assert.equal(recorder.active, false);
+});
+test("programmatic focus outside and blur-to-body stop; re-entry requires fresh Start", () => {
+  for (const relatedTarget of [{ inside: false }, null]) {
+    const { recorder, doc, node, root, key, tick } = setup();
+    const inside = node(); doc.activeElement = inside; recorder.start(consent);
+    dispatch(root, "focusout", { target: inside, relatedTarget });
+    assert.equal(recorder.reason, "test-root-left");
+    const count = recorder.events.length;
+    dispatch(root, "focusin", { target: inside }); key(); tick();
+    assert.equal(recorder.events.length, count); assert.equal(recorder.active, false);
+    recorder.start(consent); assert.equal(recorder.active, true);
+    assert.equal(recorder.events.length, 1);
+  }
+});
+test("document focus boundary is a fallback and document Escape cancels globally", () => {
+  const { recorder, doc, node } = setup();
+  doc.activeElement = node(); recorder.start(consent);
+  dispatch(doc, "focusin", { target: { inside: false } });
+  assert.equal(recorder.active, false);
+  // Start is allowed from its external UI button; Escape there must still work.
+  doc.activeElement = { inside: false }; recorder.start(consent);
+  dispatch(doc, "keydown", { key: "x", target: doc.activeElement });
+  assert.equal(recorder.active, true); assert.equal(recorder.events.length, 0);
+  dispatch(doc, "keydown", { key: "Escape", target: doc.activeElement });
+  assert.equal(recorder.reason, "escape"); assert.equal(recorder.active, false);
+});
+test("inside pointer/focus movement stays active and global listeners detach", () => {
+  const { recorder, doc, root, node } = setup();
+  const a = node(), b = node(); doc.activeElement = a; recorder.start(consent);
+  dispatch(doc, "pointerdown", { target: b });
+  dispatch(root, "focusout", { target: a, relatedTarget: b });
+  dispatch(doc, "focusin", { target: b });
+  assert.equal(recorder.active, true);
+  recorder.stop("user");
+  dispatch(doc, "keydown", { key: "Escape" });
+  dispatch(doc, "pointerdown", { target: { inside: false } });
+  assert.equal(recorder.reason, "user");
+});

@@ -22,6 +22,18 @@ export class JourneyRecorder {
     this.pending = new Set();
     this.keyHandler = (e) => this.key(e);
     this.focusHandler = (e) => this.focus(e.target);
+    // Outside targets are checked for membership only; no descriptor, text,
+    // value or non-cancellation key is retained from the document.
+    this.exitFocusHandler = (e) => {
+      if (!e.relatedTarget || !this.root.contains(e.relatedTarget)) this.stop("test-root-left");
+    };
+    this.documentFocusHandler = (e) => {
+      if (!this.root.contains(e.target)) this.stop("test-root-left");
+    };
+    this.pointerExitHandler = (e) => {
+      if (!this.root.contains(e.target)) this.stop("test-root-left");
+    };
+    this.escapeHandler = (e) => { if (e.key === "Escape") this.stop("escape"); };
     this.hideHandler = () => { if (this.doc.hidden) this.stop("hidden"); };
     this.exitHandler = () => this.stop("page-left");
     this.blurHandler = () => this.stop("window-blur");
@@ -47,6 +59,10 @@ export class JourneyRecorder {
     this.active = true;
     this.root.addEventListener("keydown", this.keyHandler, true);
     this.root.addEventListener("focusin", this.focusHandler, true);
+    this.root.addEventListener("focusout", this.exitFocusHandler, true);
+    this.doc.addEventListener("focusin", this.documentFocusHandler, true);
+    this.doc.addEventListener("pointerdown", this.pointerExitHandler, true);
+    this.doc.addEventListener("keydown", this.escapeHandler, true);
     this.doc.addEventListener("visibilitychange", this.hideHandler);
     this.win.addEventListener("pagehide", this.exitHandler);
     this.win.addEventListener("blur", this.blurHandler);
@@ -93,6 +109,10 @@ export class JourneyRecorder {
     this.pending.clear();
     this.root.removeEventListener("keydown", this.keyHandler, true);
     this.root.removeEventListener("focusin", this.focusHandler, true);
+    this.root.removeEventListener("focusout", this.exitFocusHandler, true);
+    this.doc.removeEventListener("focusin", this.documentFocusHandler, true);
+    this.doc.removeEventListener("pointerdown", this.pointerExitHandler, true);
+    this.doc.removeEventListener("keydown", this.escapeHandler, true);
     this.doc.removeEventListener("visibilitychange", this.hideHandler);
     this.win.removeEventListener("pagehide", this.exitHandler);
     this.win.removeEventListener("blur", this.blurHandler);
@@ -116,7 +136,7 @@ export class JourneyRecorder {
         possibleTraps.push({ kind: "short-focus-cycle", sequences: window.map((e) => e.sequence) });
       }
     }
-    return { schema: 1, version: "0.1.0-rc.1", active: this.active,
+    return { schema: 1, version: "0.1.0", active: this.active,
       stop_reason: this.reason, events: evidence, possible_traps: possibleTraps,
       interpretation: "Heuristic evidence only. A dialog loop can be intentional. Test escape routes manually.",
       privacy: "No text, input values, labels, IDs, page URL or typed contents are recorded." };

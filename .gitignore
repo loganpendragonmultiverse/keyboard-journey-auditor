@@ -1,3 +1,7 @@
 dist/
 node_modules/
 coverage/
+release/
+__pycache__/
+*.py[cod]
+.ruff_cache/
