@@ -1,4 +1,4 @@
-name: Release candidate build
+name: Release build
 on:
   push: { tags: ['v*'] }
   workflow_dispatch:
@@ -12,11 +12,14 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: "22" }
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with: { python-version: "3.11" }
       - run: npm test
       - run: npm run check
       - run: npm run build
       - run: npm audit --omit=dev
+      - run: python tools/release_package.py
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: reviewed-distributions
-          path: dist/*
+          path: release/*

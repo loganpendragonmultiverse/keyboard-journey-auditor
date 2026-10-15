@@ -116,7 +116,7 @@ export class JourneyRecorder {
         possibleTraps.push({ kind: "short-focus-cycle", sequences: window.map((e) => e.sequence) });
       }
     }
-    return { schema: 1, version: "0.1.0-rc.1", active: this.active,
+    return { schema: 1, version: "0.1.0", active: this.active,
       stop_reason: this.reason, events: evidence, possible_traps: possibleTraps,
       interpretation: "Heuristic evidence only. A dialog loop can be intentional. Test escape routes manually.",
       privacy: "No text, input values, labels, IDs, page URL or typed contents are recorded." };
