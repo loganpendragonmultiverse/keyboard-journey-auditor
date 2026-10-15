@@ -1,0 +1,16 @@
+{
+  "name": "keyboard-journey-auditor",
+  "version": "0.1.0-rc.1",
+  "private": true,
+  "type": "module",
+  "description": "Explicitly started, value-free keyboard journey evidence for owned test pages.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test --experimental-test-coverage",
+    "check": "node --check recorder.js && node --check app.js",
+    "build": "node tools/build.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

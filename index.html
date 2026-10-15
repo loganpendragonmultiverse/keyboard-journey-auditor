@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Keyboard Journey Auditor · release candidate</title><link rel="stylesheet" href="style.css"></head>
+<body><main><p class="eyebrow">LOGAN PENDRAGON FORGE · 0.1.0-rc.1</p>
+<h1>Follow the focus.</h1><p class="intro">A deliberate keyboard rehearsal for test pages you own. Start a short session, navigate the fixture, then review focus order and possible traps.</p>
+<section aria-labelledby="session"><h2 id="session">1. Start a private, local session</h2>
+<p>Use a normal browsing window. Do not run on private pages or real forms. Only Tab direction and anonymous focus slots are retained in memory. Escape, switching windows, hiding the page, password focus, 500 events, or five minutes stops recording.</p>
+<label><input type="checkbox" id="test"> This is my owned test page with synthetic data.</label>
+<label><input type="checkbox" id="normal"> This is a normal window, outside private browsing.</label>
+<div class="actions"><button id="start">Start session</button><button id="stop" disabled>Stop</button><button id="export" disabled>Export reviewed evidence</button><button id="clear">Clear evidence</button></div>
+<p id="status" role="status">Idle · no collection</p></section>
+<section><h2>2. Navigate the synthetic fixture</h2><p>The orange focus ring shows your position. Enable the intentional trap to exercise evidence detection. Escape always exits the session; stop controls remain outside the fixture.</p>
+<label><input type="checkbox" id="trap"> Enable a deliberately broken Tab trap on “Trap fixture”</label>
+<div id="fixture" tabindex="-1"><a href="#fixture-end">Jump to end</a><button>First action</button>
+<label>Synthetic editable field <input autocomplete="off" aria-label="Synthetic editable field" placeholder="Text is never collected"></label>
+<button id="trap-button">Trap fixture</button><details><summary>Expandable control</summary><button>Nested action</button></details><button id="fixture-end">Last action</button></div></section>
+<section><h2>3. Review the evidence</h2><p>Slots identify elements only within this session. Warnings identify possible traps, not accessibility conformance. No labels or typed contents appear below.</p><pre id="report" tabindex="0">No evidence yet.</pre></section>
+<footer>Local only · no account, network requests, persistent storage, extension, or background recorder. <a href="README.md">Read scope and integration guidance</a></footer>
+</main><script type="module" src="app.js"></script></body></html>
