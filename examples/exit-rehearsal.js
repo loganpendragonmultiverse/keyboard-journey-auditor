@@ -13,5 +13,10 @@ get("start").addEventListener("click", () => {
 });
 get("stop").addEventListener("click", () => recorder.stop());
 get("programmatic").addEventListener("click", () => get("outside").focus());
-get("blur").addEventListener("click", (event) => event.currentTarget.blur());
+// Safari pointer clicks need not focus a button. Blur the actual owned focus,
+// so this fixture exercises a real focusout-to-body in every native browser.
+get("blur").addEventListener("click", () => {
+  const active = document.activeElement;
+  if (get("root").contains(active)) active.blur();
+});
 get("root").addEventListener("focusin", render);

@@ -6,6 +6,7 @@
 - Cover backward cycles, disrupted transitions and direction changes with regressions.
 - Include the synthetic root-departure rehearsal and native-browser acceptance instructions in the web distribution.
 - Keep the rehearsal controls usable on narrow screens with wrapped JSON and a stable scrollable report area.
+- Make the Blur rehearsal release the actual focused element within its owned root, including Safari button clicks that do not focus the button.
 
 ## 0.1.0 — 2026-10-15
 
