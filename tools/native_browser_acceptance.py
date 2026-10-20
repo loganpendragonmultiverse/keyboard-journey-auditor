@@ -43,6 +43,7 @@ class Browser:
     def __init__(self, kind):
         self.kind = kind
         self.click_results = []
+        self.window_selection_results = []
         binary = {"safari": "safaridriver", "edge": "msedgedriver", "firefox": "geckodriver"}[kind]
         executable = shutil.which(binary)
         if executable is None:
@@ -192,6 +193,21 @@ class Browser:
 def acceptance(browser, base, version):
     completed = []
     browser.open(base + "/")
+    if browser.kind == "safari":
+        # Select the already owned browsing context once during initial setup.
+        # This is a standard context command, not a failed-click fallback;
+        # native trusted activation assertions below remain mandatory.
+        current = browser.command("GET", "/window")
+        selection = {"requested_handle":current,
+                     "before":browser.js("return {hasFocus:document.hasFocus(),hidden:document.hidden}"),
+                     "handles_before":browser.command("GET", "/window/handles")}
+        browser.window_selection_results.append(selection)
+        try:
+            browser.command("POST", "/window", {"handle":current})
+        finally:
+            selection["current_after"] = browser.command("GET", "/window")
+            selection["handles_after"] = browser.command("GET", "/window/handles")
+            selection["after"] = browser.js("return {hasFocus:document.hasFocus(),hidden:document.hidden}")
     browser.js("""
       window.__nativeStartup = {events:[], errors:[], unhandledRejections:[]};
       const describe = element => element ? {tag:element.tagName,id:element.id,
@@ -356,6 +372,7 @@ def main():
         finally:
             if browser:
                 evidence["native_clicks"] = browser.click_results
+                evidence["window_selection"] = browser.window_selection_results
                 browser.close()
             server.shutdown()
             server.server_close()
