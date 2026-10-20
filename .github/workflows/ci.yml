@@ -37,7 +37,7 @@ jobs:
       - run: npm run build
       - run: npm audit --omit=dev
       - run: python tools/release_package.py
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with: { name: native-candidate-distributions, path: "release/*", if-no-files-found: error }
   native:
     needs: native-package
@@ -60,7 +60,7 @@ jobs:
         with: { name: native-candidate-distributions, path: release }
       - name: Test actual ZIP in preconfigured native browser
         run: python tools/native_browser_acceptance.py --browser "${{ matrix.browser }}" --web-zip release/keyboard-journey-auditor-v0.1.1-web.zip --commit "${{ github.event.pull_request.head.sha || github.sha }}" --output "native-results/${{ matrix.browser }}.json"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: native-${{ matrix.browser }}
