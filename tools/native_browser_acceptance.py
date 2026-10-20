@@ -198,10 +198,22 @@ def acceptance(browser, base, version):
         # This is a standard context command, not a failed-click fallback;
         # native trusted activation assertions below remain mandatory.
         current = browser.command("GET", "/window")
-        selection = {"requested_handle":current,
-                     "before":browser.js("return {hasFocus:document.hasFocus(),hidden:document.hidden}"),
-                     "handles_before":browser.command("GET", "/window/handles")}
+        selection = {"requested_handle":current, "application_activation":{
+            "before":browser.js("return {hasFocus:document.hasFocus(),hidden:document.hidden}"),
+            "current_before":current, "handles_before":browser.command("GET", "/window/handles")}}
         browser.window_selection_results.append(selection)
+        # Ordinary application activation only, without a URL or a new window.
+        # Activate before the sole context selection so the owned automation
+        # context is selected after any existing Safari window comes forward.
+        activated = subprocess.run(["open", "-a", "Safari"], capture_output=True, text=True)
+        selection["application_activation"]["returncode"] = activated.returncode
+        time.sleep(1)  # One bounded setup settling interval; no repeated launch/input.
+        selection["application_activation"]["after"] = browser.js("return {hasFocus:document.hasFocus(),hidden:document.hidden}")
+        selection["application_activation"]["current_after"] = browser.command("GET", "/window")
+        selection["application_activation"]["handles_after"] = browser.command("GET", "/window/handles")
+        activated.check_returncode()
+        selection["before"] = browser.js("return {hasFocus:document.hasFocus(),hidden:document.hidden}")
+        selection["handles_before"] = browser.command("GET", "/window/handles")
         try:
             browser.command("POST", "/window", {"handle":current})
         finally:
