@@ -129,11 +129,33 @@ class Browser:
 def acceptance(browser, base, version):
     completed = []
     browser.open(base + "/")
+    browser.js("""
+      window.__nativeStartup = {events:[], errors:[], unhandledRejections:[]};
+      const describe = element => element ? {tag:element.tagName,id:element.id,
+        rect:element.getBoundingClientRect().toJSON()} : null;
+      for (const type of ['pointerdown','pointerup','mousedown','mouseup','click','focusin','focusout'])
+        document.addEventListener(type, event => window.__nativeStartup.events.push({
+          type, target:describe(event.target), active:describe(document.activeElement),
+          trusted:event.isTrusted, x:event.clientX ?? null,y:event.clientY ?? null,scrollX,scrollY
+        }), true);
+      addEventListener('error', e => window.__nativeStartup.errors.push({message:e.message,filename:e.filename,line:e.lineno}));
+      addEventListener('unhandledrejection', e => window.__nativeStartup.unhandledRejections.push(String(e.reason)));
+    """)
+    initial = browser.js("return {readyState:document.readyState,hidden:document.hidden,status:document.getElementById('status').textContent,consents:[document.getElementById('test').checked,document.getElementById('normal').checked],width:innerWidth,height:innerHeight}")
     assert "Idle" in browser.js("return document.getElementById('status').textContent")
     browser.keys("\ue004")
     assert browser.js("return document.getElementById('report').textContent") == "No evidence yet."
     browser.click("#start")
-    assert "Confirm" in browser.js("return document.getElementById('status').textContent")
+    status = browser.js("return document.getElementById('status').textContent")
+    if "Confirm" not in status:
+        diagnostics = browser.js("return {initial:arguments[0],status:document.getElementById('status').textContent,consents:[document.getElementById('test').checked,document.getElementById('normal').checked],trace:window.__nativeStartup,resources:performance.getEntriesByType('resource').map(e=>({name:e.name,duration:e.duration,responseEnd:e.responseEnd})),readyState:document.readyState,hidden:document.hidden}", initial)
+        # Failure-only probe: inspect the module cache/rejection after capturing
+        # the failed native click. Never retries that click or converts failure to pass.
+        try:
+            diagnostics["module_probe_after_failure"] = browser.command("POST", "/execute/async", {"script":"const done=arguments[arguments.length-1]; import(document.querySelector('script[type=module]').src).then(()=>done({resolved:true})).catch(e=>done({resolved:false,name:e.name,message:e.message}));", "args":[]})
+        except RuntimeError as exc:
+            diagnostics["module_probe_after_failure"] = {"driver_error":str(exc)}
+        assert "Confirm" in status, json.dumps({"initial_consent_failure":diagnostics,"capabilities":browser.capabilities})
     completed.append("idle and consent refusal")
     browser.click("#test")
     browser.click("#normal")
