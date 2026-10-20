@@ -163,3 +163,30 @@ test("inside pointer/focus movement stays active and global listeners detach", (
   dispatch(doc, "pointerdown", { target: { inside: false } });
   assert.equal(recorder.reason, "user");
 });
+
+// Merely visiting two destinations does not establish an alternating cycle.
+test("stationary samples followed by a move are not a two-element cycle", () => {
+  const { recorder, doc, node, key, tick } = setup();
+  const a = node(), b = node(); doc.activeElement = a; recorder.start(consent);
+  for (const destination of [a, a, a, b]) { key(); doc.activeElement = destination; tick(); }
+  assert.equal(recorder.report().possible_traps.some((x) => x.kind === "short-focus-cycle"), false);
+  assert.equal(recorder.report().possible_traps.some((x) => x.kind === "stationary-focus"), true);
+});
+test("backward cycles require contiguous alternating transitions", () => {
+  const { recorder, doc, node, key, tick } = setup();
+  const a = node(), b = node(); doc.activeElement = a; recorder.start(consent);
+  for (const destination of [b, a, b, a]) {
+    key("Tab", { shiftKey: true }); doc.activeElement = destination; tick();
+  }
+  assert.equal(recorder.report().possible_traps[0].kind, "short-focus-cycle");
+  recorder.events[2].from = { slot: 999 };
+  assert.equal(recorder.report().possible_traps.some((x) => x.kind === "short-focus-cycle"), false);
+});
+test("mixed Tab direction is not a short-focus-cycle", () => {
+  const { recorder, doc, node, key, tick } = setup();
+  const a = node(), b = node(); doc.activeElement = a; recorder.start(consent);
+  for (const [index, destination] of [b, a, b, a].entries()) {
+    key("Tab", { shiftKey: index === 2 }); doc.activeElement = destination; tick();
+  }
+  assert.deepEqual(recorder.report().possible_traps, []);
+});
