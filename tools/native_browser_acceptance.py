@@ -116,17 +116,20 @@ class Browser:
             document.addEventListener(type,handler,true);
             window.__nativeClick.listeners.push([type,handler]);
           }
-          return {rect:element.getBoundingClientRect().toJSON(),scrollX,scrollY,width:innerWidth,height:innerHeight};
+          return {rect:element.getBoundingClientRect().toJSON(),scrollX,scrollY,width:innerWidth,height:innerHeight,hasFocus:document.hasFocus()};
         """, {ELEMENT:element})
         mechanism = "W3C pointer Actions" if self.kind == "safari" else "WebDriver ElementClick"
         result = {"selector":selector,"mechanism":mechanism,"before":before}
+        if self.kind == "safari":
+            result["window_before"] = {"current":self.command("GET", "/window"),
+                                       "handles":self.command("GET", "/window/handles")}
         try:
             if self.kind == "safari":
                 # Standard remote-end pointer input; no DOM click/event dispatch,
                 # alternate activation fallback or changed browser preferences.
                 self.command("POST", "/actions", {"actions":[{
                     "type":"pointer","id":"native-mouse","parameters":{"pointerType":"mouse"},
-                    "actions":[{"type":"pointerMove","duration":0,"origin":{ELEMENT:element},"x":0,"y":0},
+                    "actions":[{"type":"pointerMove","duration":250,"origin":{ELEMENT:element},"x":0,"y":0},
                                {"type":"pointerDown","button":0},{"type":"pointerUp","button":0}]
                 }]})
             else:
@@ -135,7 +138,7 @@ class Browser:
             result["after"] = self.js("""
               for (const [type,handler] of window.__nativeClick.listeners)
                 document.removeEventListener(type,handler,true);
-              return {events:window.__nativeClick.events,scrollX,scrollY,
+              return {events:window.__nativeClick.events,scrollX,scrollY,hasFocus:document.hasFocus(),
                 rect:arguments[0].getBoundingClientRect().toJSON(),active:{tag:document.activeElement.tagName,id:document.activeElement.id}};
             """, {ELEMENT:element})
             self.click_results.append(result)
@@ -152,7 +155,7 @@ class Browser:
                 time.sleep(max(0, started + seconds - time.monotonic()))
                 snapshot = self.js("""
                   const element = document.querySelector(arguments[0]);
-                  return {page_performance_ms:performance.now(),readyState:document.readyState,hidden:document.hidden,
+                  return {page_performance_ms:performance.now(),readyState:document.readyState,hidden:document.hidden,hasFocus:document.hasFocus(),
                     status:document.getElementById('status')?.textContent,
                     active:{tag:document.activeElement.tagName,id:document.activeElement.id},
                     intendedRect:element?.getBoundingClientRect().toJSON(),scrollX,scrollY,
