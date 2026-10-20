@@ -13,3 +13,7 @@ Run `npm test`, `npm run check`, `npm run build` and `npm audit --omit=dev`. Tes
 Use a branch and pull request for changes. Run the test matrix and CodeQL, resolve review conversations, and let the maintainer make the final merge decision. CI workflows use read-only permissions and pinned actions.
 
 For a release, keep the package version and changelog in agreement, create an annotated semantic-version tag, and use that tag's successful release build. Verify the downloadable files against SHA256SUMS before publishing a GitHub release. Never bypass repository protections or publish artifacts from a different commit.
+
+## 0.1.1 verification
+
+Keep the cycle rule contiguous and alternating in both directions; a warning remains heuristic evidence, never a conformance verdict. Preserve the October 15 Edge result as historical evidence. New browser acceptance must record the actual browser/version/OS and exact source or artifact hash; WebKit automation is not Safari, and Chromium automation is not Microsoft Edge. Follow docs/native-acceptance.md before final qualification.

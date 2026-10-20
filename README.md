@@ -32,3 +32,7 @@ No browser extension, cross-origin inspection, automatic site crawling, private 
 ## Development and support
 
 Requires a modern browser with ES modules; development commands require Node 22+. No third-party runtime or build dependencies. See [DEVELOPMENT.md](DEVELOPMENT.md), [TESTING.md](TESTING.md), [SECURITY.md](SECURITY.md), and [CHANGELOG.md](CHANGELOG.md). Pull requests receive maintainer review; no contribution or release merges automatically. Maintenance is on demand, with no service-level commitment.
+
+## 0.1.1: more precise cycle evidence
+
+Two-element cycle warnings require four contiguous same-direction Tab transitions alternating between two distinct slots. This avoids labeling stationary focus followed by one move as a two-element cycle; stationary-focus evidence remains separate. The web ZIP now includes `examples/exit-rehearsal.html` and [native-browser acceptance instructions](docs/native-acceptance.md). Serve these over local HTTP just like the main app.

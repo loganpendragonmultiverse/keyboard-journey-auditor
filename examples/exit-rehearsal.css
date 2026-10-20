@@ -1,0 +1,4 @@
+body { margin: 1rem; max-inline-size: 70rem; font-family: system-ui, sans-serif; }
+#root { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block: 1rem; }
+button { max-inline-size: 100%; white-space: normal; }
+#report { box-sizing: border-box; block-size: 22rem; max-inline-size: 100%; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }

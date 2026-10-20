@@ -131,12 +131,14 @@ export class JourneyRecorder {
     for (let i = 3; i < tabs.length; i++) {
       const window = tabs.slice(i - 3, i + 1);
       const destinations = window.map((e) => e.to.slot);
-      if (destinations.every(Boolean) && new Set(destinations).size === 2 &&
-        window.every((e) => e.direction === window[0].direction)) {
+      if (destinations.every(Boolean) && destinations[0] !== destinations[1] &&
+        destinations[0] === destinations[2] && destinations[1] === destinations[3] &&
+        window.every((e, index) => e.from.slot === destinations[(index + 1) % 2] &&
+          e.direction === window[0].direction)) {
         possibleTraps.push({ kind: "short-focus-cycle", sequences: window.map((e) => e.sequence) });
       }
     }
-    return { schema: 1, version: "0.1.0", active: this.active,
+    return { schema: 1, version: "0.1.1", active: this.active,
       stop_reason: this.reason, events: evidence, possible_traps: possibleTraps,
       interpretation: "Heuristic evidence only. A dialog loop can be intentional. Test escape routes manually.",
       privacy: "No text, input values, labels, IDs, page URL or typed contents are recorded." };
