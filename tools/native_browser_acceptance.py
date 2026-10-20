@@ -41,6 +41,8 @@ def wait_for(fn, seconds=15):
 
 class Browser:
     def __init__(self, kind):
+        self.kind = kind
+        self.click_results = []
         binary = {"safari": "safaridriver", "edge": "msedgedriver", "firefox": "geckodriver"}[kind]
         executable = shutil.which(binary)
         if executable is None:
@@ -101,7 +103,45 @@ class Browser:
         return self.command("POST", "/element", {"using": "css selector", "value": selector})[ELEMENT]
 
     def click(self, selector):
-        self.command("POST", "/element/" + self.element(selector) + "/click", {})
+        element = self.element(selector)
+        before = self.js("""
+          const element = arguments[0];
+          element.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+          window.__nativeClick = {events:[],listeners:[]};
+          for (const type of ['pointerdown','pointerup','mousedown','mouseup','click']) {
+            const handler = event => window.__nativeClick.events.push({type,
+              expected_target:event.target === element || element.contains(event.target),
+              trusted:event.isTrusted,tag:event.target.tagName,id:event.target.id,
+              x:event.clientX,y:event.clientY,scrollX,scrollY});
+            document.addEventListener(type,handler,true);
+            window.__nativeClick.listeners.push([type,handler]);
+          }
+          return {rect:element.getBoundingClientRect().toJSON(),scrollX,scrollY,width:innerWidth,height:innerHeight};
+        """, {ELEMENT:element})
+        mechanism = "W3C pointer Actions" if self.kind == "safari" else "WebDriver ElementClick"
+        result = {"selector":selector,"mechanism":mechanism,"before":before}
+        try:
+            if self.kind == "safari":
+                # Standard remote-end pointer input; no DOM click/event dispatch,
+                # alternate activation fallback or changed browser preferences.
+                self.command("POST", "/actions", {"actions":[{
+                    "type":"pointer","id":"native-mouse","parameters":{"pointerType":"mouse"},
+                    "actions":[{"type":"pointerMove","duration":0,"origin":{ELEMENT:element},"x":0,"y":0},
+                               {"type":"pointerDown","button":0},{"type":"pointerUp","button":0}]
+                }]})
+            else:
+                self.command("POST", "/element/" + element + "/click", {})
+        finally:
+            result["after"] = self.js("""
+              for (const [type,handler] of window.__nativeClick.listeners)
+                document.removeEventListener(type,handler,true);
+              return {events:window.__nativeClick.events,scrollX,scrollY,
+                rect:arguments[0].getBoundingClientRect().toJSON(),active:{tag:document.activeElement.tagName,id:document.activeElement.id}};
+            """, {ELEMENT:element})
+            self.click_results.append(result)
+        for expected in ['pointerdown','pointerup','click']:
+            assert any(event['type'] == expected and event['trusted'] and event['expected_target']
+                       for event in result['after']['events']), json.dumps({"native_activation_failure":result,"capabilities":self.capabilities})
 
     def keys(self, value):
         active = self.command("GET", "/element/active")[ELEMENT]
@@ -292,6 +332,7 @@ def main():
             evidence["passed"] = True
         finally:
             if browser:
+                evidence["native_clicks"] = browser.click_results
                 browser.close()
             server.shutdown()
             server.server_close()
