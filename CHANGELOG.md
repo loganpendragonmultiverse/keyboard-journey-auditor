@@ -5,6 +5,7 @@
 - Require four contiguous alternating transitions for two-element cycle evidence; stationary samples followed by a move no longer produce that cycle warning.
 - Cover backward cycles, disrupted transitions and direction changes with regressions.
 - Include the synthetic root-departure rehearsal and native-browser acceptance instructions in the web distribution.
+- Keep the rehearsal controls usable on narrow screens with wrapped JSON and a stable scrollable report area.
 
 ## 0.1.0 — 2026-10-15
 
