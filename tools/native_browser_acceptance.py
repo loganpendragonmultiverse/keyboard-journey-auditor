@@ -58,6 +58,10 @@ class Browser:
         self.base = f"http://127.0.0.1:{port}"
         self.session = None
         arguments = [executable, "--port=" + str(port)] if kind == "edge" else [executable, "-p" if kind == "safari" else "--port", str(port)]
+        if kind == "safari":
+            # Ordinary application launch only; never enable automation or edit preferences.
+            subprocess.run(["open", "-a", "Safari", "about:blank"], check=True)
+            time.sleep(2)
         self.process = subprocess.Popen(arguments)
         try:
             wait_for(lambda: self.call("GET", "/status").get("ready"))
@@ -191,6 +195,16 @@ def acceptance(browser, base, version):
     completed.append("desktop/narrow native window layout (actual dimensions recorded)")
     for departure in ["pointer", "programmatic", "blur", "escape-outside"]:
         browser.open(base + "/examples/exit-rehearsal.html")
+        browser.js("""
+          window.__nativeBoundaryEvents = [];
+          const describe = element => element ? {tag:element.tagName, id:element.id,
+            inside:document.getElementById('root').contains(element)} : null;
+          for (const type of ['pointerdown','pointerup','mousedown','mouseup','click','focusin','focusout'])
+            document.addEventListener(type, event => window.__nativeBoundaryEvents.push({
+              type, target:describe(event.target), active:describe(document.activeElement),
+              trusted:event.isTrusted, pointerType:event.pointerType || null
+            }), true);
+        """)
         browser.click("#owned")
         browser.click("#normal")
         browser.click("#start")
@@ -200,8 +214,10 @@ def acceptance(browser, base, version):
             browser.click("#inside")
             browser.click({"pointer": "#outside-pointer", "programmatic": "#programmatic", "blur": "#blur"}[departure])
         report = browser.report()
-        assert not report["active"]
-        assert report["stop_reason"] == ("escape" if departure == "escape-outside" else "test-root-left")
+        diagnostics = browser.js("return {events:window.__nativeBoundaryEvents,active:{tag:document.activeElement.tagName,id:document.activeElement.id},status:document.getElementById('status').textContent}")
+        assert not report["active"], json.dumps({"departure":departure, "report":report,
+            "diagnostics":diagnostics, "capabilities":browser.capabilities})
+        assert report["stop_reason"] == ("escape" if departure == "escape-outside" else "test-root-left"), json.dumps(diagnostics)
         before = len(report["events"])
         browser.js("document.getElementById('inside').focus()")
         browser.keys("\ue004")
