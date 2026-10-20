@@ -139,6 +139,26 @@ class Browser:
                 rect:arguments[0].getBoundingClientRect().toJSON(),active:{tag:document.activeElement.tagName,id:document.activeElement.id}};
             """, {ELEMENT:element})
             self.click_results.append(result)
+        required = ['pointerdown','pointerup','click']
+        observed = result['after']['events']
+        if self.kind == 'safari' and not all(any(event['type'] == expected and
+                event['trusted'] and event['expected_target'] for event in observed)
+                for expected in required):
+            # Observation only after failed immediate activation: never sends
+            # another input and never promotes a late event into a passing case.
+            result['failure_only_late_trace'] = []
+            started = time.monotonic()
+            for seconds in [0.1,0.5,1.5,3.0]:
+                time.sleep(max(0, started + seconds - time.monotonic()))
+                snapshot = self.js("""
+                  const element = document.querySelector(arguments[0]);
+                  return {page_performance_ms:performance.now(),readyState:document.readyState,hidden:document.hidden,
+                    status:document.getElementById('status')?.textContent,
+                    active:{tag:document.activeElement.tagName,id:document.activeElement.id},
+                    intendedRect:element?.getBoundingClientRect().toJSON(),scrollX,scrollY,
+                    persistentTrace:window.__nativeStartup || {events:window.__nativeBoundaryEvents || []}};
+                """, selector)
+                result['failure_only_late_trace'].append({'after_initial_snapshot_seconds':time.monotonic()-started,'snapshot':snapshot})
         for expected in ['pointerdown','pointerup','click']:
             assert any(event['type'] == expected and event['trusted'] and event['expected_target']
                        for event in result['after']['events']), json.dumps({"native_activation_failure":result,"capabilities":self.capabilities})
