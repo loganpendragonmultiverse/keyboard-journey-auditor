@@ -61,10 +61,6 @@ class Browser:
         self.base = f"http://127.0.0.1:{port}"
         self.session = None
         arguments = [executable, "--port=" + str(port)] if kind == "edge" else [executable, "-p" if kind == "safari" else "--port", str(port)]
-        if kind == "safari":
-            # Ordinary application launch only; never enable automation or edit preferences.
-            subprocess.run(["open", "-a", "Safari", "about:blank"], check=True)
-            time.sleep(2)
         self.process = subprocess.Popen(arguments)
         try:
             wait_for(lambda: self.call("GET", "/status").get("ready"))
