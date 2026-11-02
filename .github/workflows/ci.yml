@@ -1,68 +1,142 @@
-name: CI
-on:
-  push: { branches: [main] }
-  pull_request: { branches: [main] }
-  workflow_dispatch:
-permissions:
-  contents: read
-jobs:
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { persist-credentials: false }
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with: { node-version: "22" }
-      - run: npm test
-      - run: npm run check
-      - run: npm run build
-      - run: npm audit --omit=dev
-  native-package:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: "22" }
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with: { python-version: "3.12" }
-      - run: npm test
-      - run: npm run check
-      - run: npm run build
-      - run: npm audit --omit=dev
-      - run: python tools/release_package.py
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with: { name: native-candidate-distributions, path: "release/*", if-no-files-found: error }
-  native:
-    needs: native-package
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: macos-15, browser: safari }
-          - { os: windows-latest, browser: edge }
-          - { os: ubuntu-latest, browser: firefox }
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with: { python-version: "3.12" }
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        with: { name: native-candidate-distributions, path: release }
-      - name: Test actual ZIP in preconfigured native browser
-        run: python tools/native_browser_acceptance.py --browser "${{ matrix.browser }}" --web-zip release/keyboard-journey-auditor-v0.1.1-web.zip --commit "${{ github.event.pull_request.head.sha || github.sha }}" --output "native-results/${{ matrix.browser }}.json"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: always()
-        with:
-          name: native-${{ matrix.browser }}
-          path: native-results/*.json
-          if-no-files-found: error
+{
+  "name": "Read-only Safari startup diagnosis",
+  "on": {
+    "workflow_dispatch": {}
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "jobs": {
+    "package": {
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 12,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "ref": "1c59d563e75f3518238d96ff5a91f4f1f0e62b3b"
+          }
+        },
+        {
+          "name": "Assert diagnostic branch and exact application source",
+          "run": "test \"$GITHUB_REF\" = refs/heads/audit/safari-startup-diagnostics-20261102\ntest \"$GITHUB_EVENT_NAME\" = workflow_dispatch\ntest \"$(git rev-parse HEAD)\" = 1c59d563e75f3518238d96ff5a91f4f1f0e62b3b"
+        },
+        {
+          "uses": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "with": {
+            "node-version": "22"
+          }
+        },
+        {
+          "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "run": "npm test"
+        },
+        {
+          "run": "npm run check"
+        },
+        {
+          "run": "npm run build"
+        },
+        {
+          "run": "npm audit --omit=dev"
+        },
+        {
+          "run": "python tools/release_package.py"
+        },
+        {
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "with": {
+            "name": "safari-diagnostic-source-distributions",
+            "path": "release/*",
+            "if-no-files-found": "error",
+            "retention-days": 1
+          }
+        }
+      ]
+    },
+    "safari_diagnostic": {
+      "needs": "package",
+      "runs-on": "${{ matrix.os }}",
+      "timeout-minutes": 8,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "include": [
+            {
+              "os": "macos-15",
+              "mode": "legacy-prelaunch"
+            },
+            {
+              "os": "macos-15",
+              "mode": "driver-first"
+            },
+            {
+              "os": "macos-latest",
+              "mode": "driver-first"
+            }
+          ]
+        }
+      },
+      "env": {
+        "SAFARI_MODE": "${{ matrix.mode }}",
+        "APPLICATION_COMMIT": "1c59d563e75f3518238d96ff5a91f4f1f0e62b3b"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "ref": "1c59d563e75f3518238d96ff5a91f4f1f0e62b3b"
+          }
+        },
+        {
+          "name": "Assert diagnostic branch and exact application source",
+          "run": "test \"$GITHUB_REF\" = refs/heads/audit/safari-startup-diagnostics-20261102\ntest \"$GITHUB_EVENT_NAME\" = workflow_dispatch\ntest \"$(git rev-parse HEAD)\" = 1c59d563e75f3518238d96ff5a91f4f1f0e62b3b"
+        },
+        {
+          "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "uses": "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "with": {
+            "name": "safari-diagnostic-source-distributions",
+            "path": "release"
+          }
+        },
+        {
+          "name": "Capture read-only startup facts and prepare exact-assertion diagnostic harness",
+          "run": "python - <<'PY_DIAG'\nimport pathlib,subprocess,json,os,platform,hashlib,ast\nout=pathlib.Path('native-diagnostics');out.mkdir()\ndef command(args):\n p=subprocess.run(args,capture_output=True,text=True,timeout=30)\n return {'args':args,'exit':p.returncode,'stdout':p.stdout[-12000:],'stderr':p.stderr[-4000:]}\nfacts={'os':platform.platform(),'mode':os.environ['SAFARI_MODE'],'uid':os.getuid(),'settings_modified':False,'candidate':os.environ['APPLICATION_COMMIT']}\nfor name,args in [('console',['stat','-f','%Su %u','/dev/console']),('driver_version',['safaridriver','--version']),('driver_help',['safaridriver','--help']),('remote_automation_read',['defaults','read','com.apple.Safari','AllowRemoteAutomation']),('develop_menu_read',['defaults','read','com.apple.Safari','IncludeDevelopMenu'])]:\n facts[name]=command(args)\nps=command(['ps','-axo','user,pid,ppid,stat,comm'])\nfacts['browser_processes_before']=[x for x in ps['stdout'].splitlines() if any(v in x for v in ['Safari','WebDriver','WindowServer','loginwindow'])]\nsource=pathlib.Path('tools/native_browser_acceptance.py').read_text()\noriginal=source\nblock='''        if kind == \"safari\":\n            # Ordinary application launch only; never enable automation or edit preferences.\n            subprocess.run([\"open\", \"-a\", \"Safari\", \"about:blank\"], check=True)\n            time.sleep(2)\n'''\nassert source.count(block)==1\nif os.environ['SAFARI_MODE']=='driver-first':\n source=source.replace(block,'')\nold='self.process = subprocess.Popen(arguments)'\nassert source.count(old)==1\nsource=source.replace(old,\"self.process = subprocess.Popen(arguments + ['--diagnose'], stdout=open('native-diagnostics/safaridriver.log', 'w'), stderr=subprocess.STDOUT)\")\na=ast.parse(original);b=ast.parse(source)\n# All acceptance assertions and input mechanisms remain byte-for-byte AST-identical.\ndef acceptance(tree):\n return next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='acceptance')\nassert ast.dump(acceptance(a),include_attributes=False)==ast.dump(acceptance(b),include_attributes=False)\nfacts['original_harness_sha256']=hashlib.sha256(original.encode()).hexdigest()\nfacts['diagnostic_harness_sha256']=hashlib.sha256(source.encode()).hexdigest()\nfacts['acceptance_assertions_unchanged']=True\n(out/'harness.py').write_text(source)\n(out/'startup-facts.json').write_text(json.dumps(facts,indent=2))\nprint(json.dumps(facts,indent=2))\nPY_DIAG"
+        },
+        {
+          "name": "Run complete native Safari acceptance with recorded startup mode",
+          "run": "python native-diagnostics/harness.py --browser safari --web-zip release/keyboard-journey-auditor-v0.1.1-web.zip --commit 1c59d563e75f3518238d96ff5a91f4f1f0e62b3b --output native-diagnostics/result.json"
+        },
+        {
+          "name": "Collect scoped driver and system diagnostics",
+          "if": "always()",
+          "run": "python - <<'PY_COLLECT'\nimport pathlib,subprocess,json,shutil,os,time\nout=pathlib.Path('native-diagnostics');out.mkdir(exist_ok=True)\np=subprocess.run(['log','show','--last','2m','--style','compact','--predicate','process == \"safaridriver\" OR process == \"Safari\" OR process == \"com.apple.WebKit.WebContent\"'],capture_output=True,text=True,timeout=45)\n(out/'targeted-system-log.txt').write_text((p.stdout+p.stderr)[-2000000:])\np=subprocess.run(['ps','-axo','user,pid,ppid,stat,comm'],capture_output=True,text=True,timeout=15)\n(out/'browser-processes-after.txt').write_text('\n'.join(x for x in p.stdout.splitlines() if any(v in x for v in ['Safari','WebDriver','WindowServer','loginwindow'])))\ncopied=[]\nfor base in [pathlib.Path.home()/'Library/Logs/com.apple.WebDriver',pathlib.Path.home()/'Library/Logs/WebDriver']:\n if not base.is_dir():continue\n for f in sorted(base.rglob('*')):\n  if len(copied)>=20:break\n  if f.is_file() and not f.is_symlink() and f.stat().st_size<=2000000 and f.suffix.lower() in ['.log','.json','.txt','.plist']:\n   dest=out/('driver-log-'+str(len(copied))+'-'+f.name);shutil.copyfile(f,dest);copied.append(str(f))\n(out/'collected-log-index.json').write_text(json.dumps({'settings_modified':False,'copied_driver_logs':copied,'system_log_exit':p.returncode},indent=2))\nPY_COLLECT"
+        },
+        {
+          "name": "Retain temporary diagnostic evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "with": {
+            "name": "safari-${{ matrix.os }}-${{ matrix.mode }}",
+            "path": "native-diagnostics/",
+            "if-no-files-found": "error",
+            "retention-days": 1
+          }
+        }
+      ]
+    }
+  }
+}
